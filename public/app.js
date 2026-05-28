@@ -51,22 +51,6 @@ let selectedUser = "";
 
 let allUsers = [];
 
-const savedUser =
-localStorage.getItem("username");
-
-if(savedUser){
-
-currentUser = savedUser;
-
-me.innerText =
-"👤 " + currentUser;
-
-auth.style.display = "none";
-
-app.style.display = "block";
-
-}
-
 loginBtn.onclick = ()=>{
 
 socket.emit("login", {
@@ -81,10 +65,14 @@ passwordInput.value
 
 };
 
-registerBtn.onclick = ()=>{
+registerBtn.onclick = async ()=>{
+
+let avatar = "";
 
 const file =
 avatarInput.files[0];
+
+if(file){
 
 const formData =
 new FormData();
@@ -94,17 +82,20 @@ formData.append(
 file
 );
 
-fetch("/upload",{
+const res =
+await fetch("/upload",{
 
 method:"POST",
-
 body:formData
 
-})
+});
 
-.then(res=>res.json())
+const data =
+await res.json();
 
-.then(data=>{
+avatar = data.image;
+
+}
 
 socket.emit("register", {
 
@@ -114,17 +105,13 @@ usernameInput.value,
 password:
 passwordInput.value,
 
-avatar:data.image
-
-});
+avatar
 
 });
 
 };
 
 logoutBtn.onclick = ()=>{
-
-localStorage.clear();
 
 location.reload();
 
@@ -156,44 +143,53 @@ msgInput.value = "";
 
 };
 
-socket.on("registerSuccess", ()=>{
+socket.on(
+"registerSuccess",
+()=>{
 
-alert("Registered");
+alert(
+"Account created"
+);
 
 });
 
-socket.on("registerError", err=>{
+socket.on(
+"registerError",
+err=>{
 
 alert(err);
 
 });
 
-socket.on("loginSuccess", ()=>{
+socket.on(
+"loginSuccess",
+()=>{
 
 currentUser =
 usernameInput.value;
 
-localStorage.setItem(
-"username",
-currentUser
-);
-
 me.innerText =
 "👤 " + currentUser;
 
-auth.style.display = "none";
+auth.style.display =
+"none";
 
-app.style.display = "block";
+app.style.display =
+"block";
 
 });
 
-socket.on("loginError", err=>{
+socket.on(
+"loginError",
+err=>{
 
 alert(err);
 
 });
 
-socket.on("users", users=>{
+socket.on(
+"users",
+users=>{
 
 allUsers = users;
 
@@ -207,7 +203,9 @@ usersDiv.innerHTML = "";
 
 users.forEach(user=>{
 
-if(user.username === currentUser)
+if(
+user.username === currentUser
+)
 return;
 
 usersDiv.innerHTML += `
@@ -217,7 +215,7 @@ onclick="selectUser('${user.username}')">
 
 <img
 class="avatar"
-src="${user.avatar}"
+src="${user.avatar || ''}"
 >
 
 <div>
