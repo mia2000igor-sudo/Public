@@ -18,8 +18,10 @@ io.on("connection", socket=>{
 socket.on("join", username=>{
 
 io.emit("message", {
+
 user:"SYSTEM",
-text:username + " joined"
+text: username + " joined"
+
 });
 
 });
@@ -33,7 +35,9 @@ io.emit("message", data);
 });
 
 server.listen(
+
 process.env.PORT || 3000,
+
 ()=>{
 
 console.log("Server started");
