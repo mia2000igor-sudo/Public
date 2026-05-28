@@ -145,14 +145,30 @@ socket.emit(
 "loginSuccess"
 );
 
-socket.emit(
-"oldMessages",
-db.data.messages
-);
+const users =
+db.data.users.map(u=>({
+
+username:u.username,
+
+avatar:u.avatar,
+
+online:
+Object.values(
+onlineUsers
+).includes(
+u.username
+)
+
+}));
 
 io.emit(
 "users",
-Object.values(onlineUsers)
+users
+);
+
+socket.emit(
+"oldMessages",
+db.data.messages
 );
 
 }else{
@@ -170,18 +186,12 @@ socket.on(
 "privateMessage",
 async data=>{
 
-const targetSocket =
-Object.keys(onlineUsers).find(
-
-id =>
-onlineUsers[id] === data.to
-
-);
-
 const msg = {
 
 user:data.user,
+
 to:data.to,
+
 text:data.text
 
 };
@@ -189,6 +199,14 @@ text:data.text
 db.data.messages.push(msg);
 
 await db.write();
+
+const targetSocket =
+Object.keys(onlineUsers).find(
+
+id =>
+onlineUsers[id] === data.to
+
+);
 
 if(targetSocket){
 
@@ -213,9 +231,25 @@ socket.on(
 
 delete onlineUsers[socket.id];
 
+const users =
+db.data.users.map(u=>({
+
+username:u.username,
+
+avatar:u.avatar,
+
+online:
+Object.values(
+onlineUsers
+).includes(
+u.username
+)
+
+}));
+
 io.emit(
 "users",
-Object.values(onlineUsers)
+users
 );
 
 });

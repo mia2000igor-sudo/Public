@@ -12,6 +12,9 @@ document.getElementById("username");
 const passwordInput =
 document.getElementById("password");
 
+const avatarInput =
+document.getElementById("avatarInput");
+
 const loginBtn =
 document.getElementById("loginBtn");
 
@@ -24,13 +27,17 @@ document.getElementById("logoutBtn");
 const me =
 document.getElementById("me");
 
-const chat =
-document.getElementById("chat");
-
 const usersDiv =
 document.getElementById("users");
 
-let selectedUser = "";
+const search =
+document.getElementById("search");
+
+const chatTop =
+document.getElementById("chatTop");
+
+const chat =
+document.getElementById("chat");
 
 const msgInput =
 document.getElementById("msg");
@@ -40,19 +47,23 @@ document.getElementById("sendBtn");
 
 let currentUser = "";
 
+let selectedUser = "";
+
+let allUsers = [];
+
 const savedUser =
 localStorage.getItem("username");
 
 if(savedUser){
 
-auth.style.display = "none";
-
-app.style.display = "block";
-
 currentUser = savedUser;
 
 me.innerText =
 "👤 " + currentUser;
+
+auth.style.display = "none";
+
+app.style.display = "block";
 
 }
 
@@ -72,13 +83,40 @@ passwordInput.value
 
 registerBtn.onclick = ()=>{
 
+const file =
+avatarInput.files[0];
+
+const formData =
+new FormData();
+
+formData.append(
+"avatar",
+file
+);
+
+fetch("/upload",{
+
+method:"POST",
+
+body:formData
+
+})
+
+.then(res=>res.json())
+
+.then(data=>{
+
 socket.emit("register", {
 
 username:
 usernameInput.value,
 
 password:
-passwordInput.value
+passwordInput.value,
+
+avatar:data.image
+
+});
 
 });
 
@@ -86,7 +124,7 @@ passwordInput.value
 
 logoutBtn.onclick = ()=>{
 
-localStorage.removeItem("username");
+localStorage.clear();
 
 location.reload();
 
@@ -94,23 +132,25 @@ location.reload();
 
 sendBtn.onclick = ()=>{
 
-if(msgInput.value === "")
+if(
+msgInput.value === "" ||
+selectedUser === ""
+)
 return;
-
-if(selectedUser){
 
 socket.emit(
 "privateMessage",
 {
 
 user:currentUser,
+
 to:selectedUser,
+
 text:msgInput.value
 
 }
-);
 
-}
+);
 
 msgInput.value = "";
 
@@ -153,7 +193,86 @@ alert(err);
 
 });
 
-socket.on("message", data=>{
+socket.on("users", users=>{
+
+allUsers = users;
+
+renderUsers(users);
+
+});
+
+function renderUsers(users){
+
+usersDiv.innerHTML = "";
+
+users.forEach(user=>{
+
+if(user.username === currentUser)
+return;
+
+usersDiv.innerHTML += `
+
+<div class="user"
+onclick="selectUser('${user.username}')">
+
+<img
+class="avatar"
+src="${user.avatar}"
+>
+
+<div>
+
+${user.online ? "🟢" : "⚫"}
+
+${user.username}
+
+</div>
+
+</div>
+
+`;
+
+});
+
+}
+
+function selectUser(user){
+
+selectedUser = user;
+
+chatTop.innerText =
+"Chat with " + user;
+
+chat.innerHTML = "";
+
+}
+
+search.oninput = ()=>{
+
+const filtered =
+allUsers.filter(
+
+u =>
+u.username
+.toLowerCase()
+.includes(
+search.value.toLowerCase()
+)
+
+);
+
+renderUsers(filtered);
+
+};
+
+socket.on(
+"privateMessage",
+data=>{
+
+if(
+data.user === selectedUser ||
+data.to === selectedUser
+){
 
 chat.innerHTML += `
 
@@ -172,92 +291,6 @@ ${data.text}
 chat.scrollTop =
 chat.scrollHeight;
 
-});
-
-socket.on("oldMessages", messages=>{
-
-chat.innerHTML = "";
-
-messages.forEach(data=>{
-
-chat.innerHTML += `
-
-<div class="message">
-
-<b>${data.user}</b>
-
-<br>
-
-${data.text}
-
-</div>
-
-`;
-
-});
-
-});
-socket.on("users", data=>{
-
-usersDiv.innerHTML = "";
-
-data.all.forEach(user=>{
-
-if(user === currentUser)
-return;
-
-const isOnline =
-data.online.includes(user);
-
-usersDiv.innerHTML += `
-
-<div class="user"
-onclick="selectUser('${user}')">
-
-${isOnline ? "🟢" : "⚫"} ${user}
-
-</div>
-
-`;
-
-});
-
-});
-
-function selectUser(user){
-
-selectedUser = user;
-
-chat.innerHTML += `
-
-<div class="message">
-
-<b>SYSTEM</b><br>
-
-Chat with ${user}
-
-</div>
-
-`;
-
 }
-
-socket.on(
-"privateMessage",
-data=>{
-
-chat.innerHTML += `
-
-<div class="message">
-
-<b>${data.user}</b>
-
-<br>
-
-${data.text}
-
-</div>
-
-`;
 
 });
