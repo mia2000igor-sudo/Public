@@ -10,7 +10,7 @@ const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server);
-
+let onlineUsers = {};
 app.use(express.static("public"));
 app.use(express.json());
 
@@ -71,7 +71,13 @@ if(user){
 
 socket.username =
 data.username;
+onlineUsers[socket.id] =
+data.username;
 
+io.emit(
+"users",
+Object.values(onlineUsers)
+);
 socket.emit("loginSuccess");
 
 socket.emit(
@@ -112,7 +118,52 @@ process.env.PORT || 3000,
 ()=>{
 
 console.log("Server started");
+socket.on("privateMessage", async data=>{
 
+const targetSocket =
+Object.keys(onlineUsers).find(
+
+id =>
+onlineUsers[id] === data.to
+
+);
+
+if(targetSocket){
+
+const msg = {
+
+user:data.user,
+to:data.to,
+text:data.text
+
+};
+
+db.data.messages.push(msg);
+
+await db.write();
+
+io.to(targetSocket)
+.emit("privateMessage", msg);
+
+socket.emit(
+"privateMessage",
+msg
+);
+
+}
+
+});
+
+socket.on("disconnect", ()=>{
+
+delete onlineUsers[socket.id];
+
+io.emit(
+"users",
+Object.values(onlineUsers)
+);
+
+});
 });
 
 }

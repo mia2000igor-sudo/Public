@@ -27,6 +27,11 @@ document.getElementById("me");
 const chat =
 document.getElementById("chat");
 
+const usersDiv =
+document.getElementById("users");
+
+let selectedUser = "";
+
 const msgInput =
 document.getElementById("msg");
 
@@ -92,10 +97,20 @@ sendBtn.onclick = ()=>{
 if(msgInput.value === "")
 return;
 
+if(selectedUser){
+
 socket.emit(
-"message",
-msgInput.value
+"privateMessage",
+{
+
+user:currentUser,
+to:selectedUser,
+text:msgInput.value
+
+}
 );
+
+}
 
 msgInput.value = "";
 
@@ -180,5 +195,66 @@ ${data.text}
 `;
 
 });
+
+});
+socket.on("users", users=>{
+
+usersDiv.innerHTML = "";
+
+users.forEach(user=>{
+
+if(user === currentUser)
+return;
+
+usersDiv.innerHTML += `
+
+<div class="user"
+onclick="selectUser('${user}')">
+
+🟢 ${user}
+
+</div>
+
+`;
+
+});
+
+});
+
+function selectUser(user){
+
+selectedUser = user;
+
+chat.innerHTML += `
+
+<div class="message">
+
+<b>SYSTEM</b><br>
+
+Chat with ${user}
+
+</div>
+
+`;
+
+}
+
+socket.on(
+"privateMessage",
+data=>{
+
+chat.innerHTML += `
+
+<div class="message">
+
+<b>${data.user}</b>
+
+<br>
+
+${data.text}
+
+</div>
+
+`;
 
 });
