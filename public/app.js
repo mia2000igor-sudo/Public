@@ -18,6 +18,12 @@ document.getElementById("loginBtn");
 const registerBtn =
 document.getElementById("registerBtn");
 
+const logoutBtn =
+document.getElementById("logoutBtn");
+
+const me =
+document.getElementById("me");
+
 const chat =
 document.getElementById("chat");
 
@@ -26,6 +32,24 @@ document.getElementById("msg");
 
 const sendBtn =
 document.getElementById("sendBtn");
+
+let currentUser = "";
+
+const savedUser =
+localStorage.getItem("username");
+
+if(savedUser){
+
+auth.style.display = "none";
+
+app.style.display = "block";
+
+currentUser = savedUser;
+
+me.innerText =
+"👤 " + currentUser;
+
+}
 
 loginBtn.onclick = ()=>{
 
@@ -52,6 +76,14 @@ password:
 passwordInput.value
 
 });
+
+};
+
+logoutBtn.onclick = ()=>{
+
+localStorage.removeItem("username");
+
+location.reload();
 
 };
 
@@ -82,6 +114,17 @@ alert(err);
 });
 
 socket.on("loginSuccess", ()=>{
+
+currentUser =
+usernameInput.value;
+
+localStorage.setItem(
+"username",
+currentUser
+);
+
+me.innerText =
+"👤 " + currentUser;
 
 auth.style.display = "none";
 
