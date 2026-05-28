@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Stream App</title>
+
+    <style>
+        body{
+            background:#111;
+            color:white;
+            font-family:Arial;
+            text-align:center;
+        }
+
+        video{
+            width:90%;
+            max-width:500px;
+            border-radius:10px;
+            margin-top:20px;
+        }
+
+        #chat{
+            height:200px;
+            overflow-y:scroll;
+            border:1px solid #555;
+            margin:20px;
+            padding:10px;
+        }
+
+        input{
+            padding:10px;
+            width:60%;
+        }
+
+        button{
+            padding:10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>🎮 My Stream</h1>
+
+<video id="video" autoplay playsinline muted></video>
+
+<br><br>
+
+<button onclick="startCamera()">
+Start Camera
+</button>
+
+<div id="chat"></div>
+
+<input id="msg" placeholder="message">
+<button onclick="sendMessage()">Send</button>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+const socket = io();
+
+const chat = document.getElementById("chat");
+
+socket.on("chat message", (msg)=>{
+    chat.innerHTML += "<div>"+msg+"</div>";
+});
+
+function sendMessage(){
+
+    const input = document.getElementById("msg");
+
+    socket.emit("chat message", input.value);
+
+    input.value = "";
+}
+
+async function startCamera(){
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+        video:true,
+        audio:true
+    });
+
+    document.getElementById("video").srcObject = stream;
+}
+
+</script>
+
+</body>
+</html>
