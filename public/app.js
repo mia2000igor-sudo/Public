@@ -6,6 +6,9 @@ prompt("Your name");
 const chat =
 document.getElementById("chat");
 
+const usersDiv =
+document.getElementById("users");
+
 const msgInput =
 document.getElementById("msg");
 
@@ -48,5 +51,23 @@ ${data.text}
 
 chat.scrollTop =
 chat.scrollHeight;
+
+});
+
+socket.on("users", users=>{
+
+usersDiv.innerHTML = "";
+
+users.forEach(user=>{
+
+usersDiv.innerHTML += `
+
+<div class="user">
+🟢 ${user}
+</div>
+
+`;
+
+});
 
 });

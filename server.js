@@ -13,9 +13,16 @@ const io = new Server(server);
 
 app.use(express.static("public"));
 
+let users = {};
+
 io.on("connection", socket=>{
 
 socket.on("join", username=>{
+
+users[socket.id] = username;
+
+io.emit("users",
+Object.values(users));
 
 io.emit("message", {
 
@@ -29,6 +36,15 @@ text: username + " joined"
 socket.on("message", data=>{
 
 io.emit("message", data);
+
+});
+
+socket.on("disconnect", ()=>{
+
+delete users[socket.id];
+
+io.emit("users",
+Object.values(users));
 
 });
 
