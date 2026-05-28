@@ -197,21 +197,24 @@ ${data.text}
 });
 
 });
-socket.on("users", users=>{
+socket.on("users", data=>{
 
 usersDiv.innerHTML = "";
 
-users.forEach(user=>{
+data.all.forEach(user=>{
 
 if(user === currentUser)
 return;
+
+const isOnline =
+data.online.includes(user);
 
 usersDiv.innerHTML += `
 
 <div class="user"
 onclick="selectUser('${user}')">
 
-🟢 ${user}
+${isOnline ? "🟢" : "⚫"} ${user}
 
 </div>
 

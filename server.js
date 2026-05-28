@@ -2,25 +2,73 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 
+const multer = require("multer");
+
 const { Low } = require("lowdb");
 const { JSONFile } = require("lowdb/node");
 
 const app = express();
 
-const server = http.createServer(app);
+const server =
+http.createServer(app);
 
-const io = new Server(server);
+const io =
+new Server(server);
 
 app.use(express.static("public"));
 app.use(express.json());
+
+app.use(
+"/uploads",
+express.static("uploads")
+);
+
+const storage =
+multer.diskStorage({
+
+destination:(req,file,cb)=>{
+
+cb(null,"uploads");
+
+},
+
+filename:(req,file,cb)=>{
+
+cb(
+null,
+Date.now() + "-" + file.originalname
+);
+
+}
+
+});
+
+const upload =
+multer({ storage });
+
+app.post(
+"/upload",
+upload.single("avatar"),
+(req,res)=>{
+
+res.json({
+
+image:
+"/uploads/" + req.file.filename
+
+});
+
+});
 
 const adapter =
 new JSONFile("db.json");
 
 const db =
 new Low(adapter, {
+
 users: [],
 messages: []
+
 });
 
 let onlineUsers = {};
@@ -31,11 +79,16 @@ await db.read();
 
 io.on("connection", socket=>{
 
-socket.on("register", async data=>{
+socket.on(
+"register",
+async data=>{
 
 const exists =
 db.data.users.find(
-u => u.username === data.username
+
+u =>
+u.username === data.username
+
 );
 
 if(exists){
@@ -52,7 +105,10 @@ return;
 db.data.users.push({
 
 username:data.username,
-password:data.password
+
+password:data.password,
+
+avatar:data.avatar
 
 });
 
@@ -64,7 +120,9 @@ socket.emit(
 
 });
 
-socket.on("login", async data=>{
+socket.on(
+"login",
+async data=>{
 
 const user =
 db.data.users.find(
@@ -120,8 +178,6 @@ onlineUsers[id] === data.to
 
 );
 
-if(targetSocket){
-
 const msg = {
 
 user:data.user,
@@ -134,18 +190,20 @@ db.data.messages.push(msg);
 
 await db.write();
 
+if(targetSocket){
+
 io.to(targetSocket)
 .emit(
 "privateMessage",
 msg
 );
 
+}
+
 socket.emit(
 "privateMessage",
 msg
 );
-
-}
 
 });
 
