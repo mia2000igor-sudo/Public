@@ -95,9 +95,13 @@ socket.on("watcher", async ()=>{
 peer =
 new RTCPeerConnection(config);
 
+if(localStream){
+
 localStream.getTracks().forEach(track=>{
 peer.addTrack(track, localStream);
 });
+
+}
 
 peer.onicecandidate = event=>{
 if(event.candidate){
@@ -116,6 +120,38 @@ socket.emit("offer", offer);
 });
 
 socket.on("offer", async offer=>{
+
+peer =
+new RTCPeerConnection(config);
+
+peer.ontrack = event=>{
+
+video.srcObject = event.streams[0];
+
+};
+
+peer.onicecandidate = event=>{
+
+if(event.candidate){
+
+socket.emit("candidate",
+event.candidate);
+
+}
+
+};
+
+await peer.setRemoteDescription(offer);
+
+const answer =
+await peer.createAnswer();
+
+await peer.setLocalDescription(answer);
+
+socket.emit("answer",
+peer.localDescription);
+
+});
 
 peer =
 new RTCPeerConnection(config);
