@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Live Stream</title>
+<title>Stream App</title>
 
 <style>
 
@@ -17,12 +17,15 @@ width:90%;
 max-width:700px;
 margin-top:20px;
 background:black;
+border-radius:10px;
 }
 
 button{
 padding:15px;
 font-size:20px;
 margin:10px;
+border:none;
+border-radius:10px;
 }
 
 </style>
@@ -31,9 +34,17 @@ margin:10px;
 
 <body>
 
-<h1>🎥 Live Stream</h1>
+<h1>🎮 STREAM APP</h1>
 
-<button id="start">START STREAM</button>
+<button id="streamBtn">
+🎥 СТРИМИТЬ
+</button>
+
+<button id="watchBtn">
+👀 СМОТРЕТЬ
+</button>
+
+<br>
 
 <video id="video" autoplay playsinline controls></video>
 
@@ -45,100 +56,106 @@ const socket = io();
 
 const video = document.getElementById("video");
 
-let peerConnections = {};
+let localStream;
+
+let peer;
 
 const config = {
-iceServers: [
+iceServers:[
 {
-urls: "stun:stun.l.google.com:19302"
+urls:"stun:stun.l.google.com:19302"
 }
 ]
 };
 
-socket.emit("watcher");
+document.getElementById("streamBtn")
+.onclick = async ()=>{
 
-socket.on("watcher", async id => {
-
-const peerConnection =
-new RTCPeerConnection(config);
-
-peerConnections[id] = peerConnection;
-
-const stream = video.srcObject;
-
-stream.getTracks().forEach(track =>
-peerConnection.addTrack(track, stream)
-);
-
-peerConnection.onicecandidate = event => {
-if(event.candidate){
-socket.emit("candidate", id, event.candidate);
-}
-};
-
-const offer =
-await peerConnection.createOffer();
-
-await peerConnection.setLocalDescription(offer);
-
-socket.emit("offer", id,
-peerConnection.localDescription);
-
-});
-
-socket.on("offer", async (id, description) => {
-
-const peerConnection =
-new RTCPeerConnection(config);
-
-peerConnections[id] = peerConnection;
-
-peerConnection.ontrack = event => {
-video.srcObject = event.streams[0];
-};
-
-peerConnection.onicecandidate = event => {
-if(event.candidate){
-socket.emit("candidate", id, event.candidate);
-}
-};
-
-await peerConnection.setRemoteDescription(description);
-
-const answer =
-await peerConnection.createAnswer();
-
-await peerConnection.setLocalDescription(answer);
-
-socket.emit("answer", id,
-peerConnection.localDescription);
-
-});
-
-socket.on("answer", (id, description) => {
-peerConnections[id]
-.setRemoteDescription(description);
-});
-
-socket.on("candidate", (id, candidate) => {
-peerConnections[id]
-.addIceCandidate(new RTCIceCandidate(candidate));
-});
-
-document.getElementById("start")
-.onclick = async () => {
-
-const stream =
+localStream =
 await navigator.mediaDevices.getUserMedia({
 video:true,
 audio:true
 });
 
-video.srcObject = stream;
+video.srcObject = localStream;
 
 socket.emit("broadcaster");
 
 };
+
+document.getElementById("watchBtn")
+.onclick = ()=>{
+
+socket.emit("watcher");
+
+};
+
+socket.on("watcher", async ()=>{
+
+peer =
+new RTCPeerConnection(config);
+
+localStream.getTracks().forEach(track=>{
+peer.addTrack(track, localStream);
+});
+
+peer.onicecandidate = event=>{
+if(event.candidate){
+socket.emit("candidate",
+event.candidate);
+}
+};
+
+const offer =
+await peer.createOffer();
+
+await peer.setLocalDescription(offer);
+
+socket.emit("offer", offer);
+
+});
+
+socket.on("offer", async offer=>{
+
+peer =
+new RTCPeerConnection(config);
+
+peer.ontrack = event=>{
+video.srcObject = event.streams[0];
+};
+
+peer.onicecandidate = event=>{
+if(event.candidate){
+socket.emit("candidate",
+event.candidate);
+}
+};
+
+await peer.setRemoteDescription(offer);
+
+const answer =
+await peer.createAnswer();
+
+await peer.setLocalDescription(answer);
+
+socket.emit("answer",
+peer.localDescription);
+
+});
+
+socket.on("answer", answer=>{
+
+peer.setRemoteDescription(answer);
+
+});
+
+socket.on("candidate", candidate=>{
+
+peer.addIceCandidate(
+new RTCIceCandidate(candidate)
+);
+
+});
 
 </script>
 
