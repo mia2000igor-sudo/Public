@@ -1,5 +1,23 @@
 const socket = io();
 
+const auth =
+document.getElementById("auth");
+
+const app =
+document.getElementById("app");
+
+const usernameInput =
+document.getElementById("username");
+
+const passwordInput =
+document.getElementById("password");
+
+const loginBtn =
+document.getElementById("loginBtn");
+
+const registerBtn =
+document.getElementById("registerBtn");
+
 const chat =
 document.getElementById("chat");
 
@@ -9,47 +27,33 @@ document.getElementById("msg");
 const sendBtn =
 document.getElementById("sendBtn");
 
-let username = "";
-
-function register(){
-
-const user =
-prompt("Create username");
-
-const pass =
-prompt("Create password");
-
-socket.emit("register", {
-
-username:user,
-password:pass
-
-});
-
-}
-
-function login(){
-
-const user =
-prompt("Username");
-
-const pass =
-prompt("Password");
+loginBtn.onclick = ()=>{
 
 socket.emit("login", {
 
-username:user,
-password:pass
+username:
+usernameInput.value,
+
+password:
+passwordInput.value
 
 });
 
-username = user;
+};
 
-}
+registerBtn.onclick = ()=>{
 
-register();
+socket.emit("register", {
 
-login();
+username:
+usernameInput.value,
+
+password:
+passwordInput.value
+
+});
+
+};
 
 sendBtn.onclick = ()=>{
 
@@ -64,6 +68,32 @@ msgInput.value
 msgInput.value = "";
 
 };
+
+socket.on("registerSuccess", ()=>{
+
+alert("Registered");
+
+});
+
+socket.on("registerError", err=>{
+
+alert(err);
+
+});
+
+socket.on("loginSuccess", ()=>{
+
+auth.style.display = "none";
+
+app.style.display = "block";
+
+});
+
+socket.on("loginError", err=>{
+
+alert(err);
+
+});
 
 socket.on("message", data=>{
 
@@ -107,29 +137,5 @@ ${data.text}
 `;
 
 });
-
-});
-
-socket.on("registerSuccess", ()=>{
-
-alert("Registration success");
-
-});
-
-socket.on("registerError", err=>{
-
-alert(err);
-
-});
-
-socket.on("loginSuccess", ()=>{
-
-alert("Login success");
-
-});
-
-socket.on("loginError", err=>{
-
-alert(err);
 
 });

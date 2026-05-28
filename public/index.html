@@ -10,11 +10,36 @@
 
 <body>
 
-<div id="top">
-💬 MY MESSENGER
+<div id="auth">
+
+<h1>💬 MY MESSENGER</h1>
+
+<input
+id="username"
+placeholder="Username"
+>
+
+<input
+id="password"
+type="password"
+placeholder="Password"
+>
+
+<button id="loginBtn">
+LOGIN
+</button>
+
+<button id="registerBtn">
+REGISTER
+</button>
+
 </div>
 
-<div id="users"></div>
+<div id="app" style="display:none;">
+
+<div id="top">
+💬 CHAT
+</div>
 
 <div id="chat"></div>
 
@@ -28,6 +53,8 @@ placeholder="Message..."
 <button id="sendBtn">
 SEND
 </button>
+
+</div>
 
 </div>
 
