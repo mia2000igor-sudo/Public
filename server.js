@@ -1,19 +1,14 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-
 const multer = require("multer");
 
 const { Low } = require("lowdb");
 const { JSONFile } = require("lowdb/node");
 
 const app = express();
-
-const server =
-http.createServer(app);
-
-const io =
-new Server(server);
+const server = http.createServer(app);
+const io = new Server(server);
 
 app.use(express.static("public"));
 app.use(express.json());
@@ -79,16 +74,11 @@ await db.read();
 
 io.on("connection", socket=>{
 
-socket.on(
-"register",
-async data=>{
+socket.on("register", async data=>{
 
 const exists =
 db.data.users.find(
-
-u =>
-u.username === data.username
-
+u => u.username === data.username
 );
 
 if(exists){
@@ -105,9 +95,7 @@ return;
 db.data.users.push({
 
 username:data.username,
-
 password:data.password,
-
 avatar:data.avatar
 
 });
@@ -120,9 +108,7 @@ socket.emit(
 
 });
 
-socket.on(
-"login",
-async data=>{
+socket.on("login", async data=>{
 
 const user =
 db.data.users.find(
@@ -133,7 +119,16 @@ u.password === data.password
 
 );
 
-if(user){
+if(!user){
+
+socket.emit(
+"loginError",
+"Wrong login"
+);
+
+return;
+
+}
 
 socket.username =
 data.username;
@@ -171,15 +166,6 @@ socket.emit(
 db.data.messages
 );
 
-}else{
-
-socket.emit(
-"loginError",
-"Wrong login"
-);
-
-}
-
 });
 
 socket.on(
@@ -189,9 +175,7 @@ async data=>{
 const msg = {
 
 user:data.user,
-
 to:data.to,
-
 text:data.text
 
 };
@@ -231,40 +215,15 @@ socket.on(
 
 delete onlineUsers[socket.id];
 
-const users =
-db.data.users.map(u=>({
-
-username:u.username,
-
-avatar:u.avatar,
-
-online:
-Object.values(
-onlineUsers
-).includes(
-u.username
-)
-
-}));
-
-io.emit(
-"users",
-users
-);
-
 });
 
 });
 
 server.listen(
-
 process.env.PORT || 3000,
-
 ()=>{
 
-console.log(
-"Server started"
-);
+console.log("Server started");
 
 });
 
