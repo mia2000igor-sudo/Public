@@ -1,13 +1,7 @@
 const socket = io();
 
-const username =
-prompt("Your name");
-
 const chat =
 document.getElementById("chat");
-
-const usersDiv =
-document.getElementById("users");
 
 const msgInput =
 document.getElementById("msg");
@@ -15,47 +9,71 @@ document.getElementById("msg");
 const sendBtn =
 document.getElementById("sendBtn");
 
-let selectedUser = null;
+let username = "";
 
-socket.emit("join", username);
+function register(){
+
+const user =
+prompt("Create username");
+
+const pass =
+prompt("Create password");
+
+socket.emit("register", {
+
+username:user,
+password:pass
+
+});
+
+}
+
+function login(){
+
+const user =
+prompt("Username");
+
+const pass =
+prompt("Password");
+
+socket.emit("login", {
+
+username:user,
+password:pass
+
+});
+
+username = user;
+
+}
+
+register();
+
+login();
 
 sendBtn.onclick = ()=>{
 
 if(msgInput.value === "")
 return;
 
-if(selectedUser){
-
-socket.emit("privateMessage", {
-
-to: selectedUser,
-text: msgInput.value,
-user: username
-
-});
-
-chat.innerHTML += `
-
-<div class="message">
-<b>You → ${selectedUser}</b><br>
-${msgInput.value}
-</div>
-
-`;
-
-}
+socket.emit(
+"message",
+msgInput.value
+);
 
 msgInput.value = "";
 
 };
 
-socket.on("privateMessage", data=>{
+socket.on("message", data=>{
 
 chat.innerHTML += `
 
 <div class="message">
 
-<b>${data.user}</b><br>
+<b>${data.user}</b>
+
+<br>
 
 ${data.text}
 
@@ -68,44 +86,50 @@ chat.scrollHeight;
 
 });
 
-socket.on("users", users=>{
+socket.on("oldMessages", messages=>{
 
-usersDiv.innerHTML = "";
+chat.innerHTML = "";
 
-users.forEach(user=>{
-
-if(user === username)
-return;
-
-usersDiv.innerHTML += `
-
-<div class="user"
-onclick="selectUser('${user}')">
-
-🟢 ${user}
-
-</div>
-
-`;
-
-});
-
-});
-
-function selectUser(user){
-
-selectedUser = user;
+messages.forEach(data=>{
 
 chat.innerHTML += `
 
 <div class="message">
 
-<b>SYSTEM</b><br>
+<b>${data.user}</b>
 
-Chat with ${user}
+<br>
+
+${data.text}
 
 </div>
 
 `;
 
-}
+});
+
+});
+
+socket.on("registerSuccess", ()=>{
+
+alert("Registration success");
+
+});
+
+socket.on("registerError", err=>{
+
+alert(err);
+
+});
+
+socket.on("loginSuccess", ()=>{
+
+alert("Login success");
+
+});
+
+socket.on("loginError", err=>{
+
+alert(err);
+
+});
