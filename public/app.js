@@ -15,6 +15,8 @@ document.getElementById("msg");
 const sendBtn =
 document.getElementById("sendBtn");
 
+let selectedUser = null;
+
 socket.emit("join", username);
 
 sendBtn.onclick = ()=>{
@@ -22,26 +24,38 @@ sendBtn.onclick = ()=>{
 if(msgInput.value === "")
 return;
 
-socket.emit("message", {
+if(selectedUser){
 
-user: username,
-text: msgInput.value
+socket.emit("privateMessage", {
+
+to: selectedUser,
+text: msgInput.value,
+user: username
 
 });
+
+chat.innerHTML += `
+
+<div class="message">
+<b>You → ${selectedUser}</b><br>
+${msgInput.value}
+</div>
+
+`;
+
+}
 
 msgInput.value = "";
 
 };
 
-socket.on("message", data=>{
+socket.on("privateMessage", data=>{
 
 chat.innerHTML += `
 
 <div class="message">
 
-<b>${data.user}</b>
-
-<br>
+<b>${data.user}</b><br>
 
 ${data.text}
 
@@ -60,10 +74,16 @@ usersDiv.innerHTML = "";
 
 users.forEach(user=>{
 
+if(user === username)
+return;
+
 usersDiv.innerHTML += `
 
-<div class="user">
+<div class="user"
+onclick="selectUser('${user}')">
+
 🟢 ${user}
+
 </div>
 
 `;
@@ -71,3 +91,21 @@ usersDiv.innerHTML += `
 });
 
 });
+
+function selectUser(user){
+
+selectedUser = user;
+
+chat.innerHTML += `
+
+<div class="message">
+
+<b>SYSTEM</b><br>
+
+Chat with ${user}
+
+</div>
+
+`;
+
+}

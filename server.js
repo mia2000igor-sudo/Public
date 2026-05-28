@@ -24,18 +24,26 @@ users[socket.id] = username;
 io.emit("users",
 Object.values(users));
 
-io.emit("message", {
+});
 
-user:"SYSTEM",
-text: username + " joined"
+socket.on("privateMessage", data=>{
+
+const targetId =
+Object.keys(users).find(
+id => users[id] === data.to
+);
+
+if(targetId){
+
+io.to(targetId)
+.emit("privateMessage", {
+
+user:data.user,
+text:data.text
 
 });
 
-});
-
-socket.on("message", data=>{
-
-io.emit("message", data);
+}
 
 });
 
