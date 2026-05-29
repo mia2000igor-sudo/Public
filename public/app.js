@@ -196,8 +196,9 @@ async () => {
   </div>
   `;
 
-  loadFriends();
-  loadRequests();
+   await loadRequests();
+ 
+   await loadFriends();
 
 };
 
@@ -423,7 +424,9 @@ async () => {
           "Friend request sent"
         );
 
-      };
+         loadRequests();
+
+        };
 
       searchResults.appendChild(
         div
