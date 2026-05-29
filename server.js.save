@@ -64,9 +64,7 @@ const db =
 new Low(adapter, {
 
 users: [],
-messages: [],
-friendRequests: [],
-friends: []
+messages: []
 
 });
 
@@ -102,8 +100,7 @@ db.data.users.push({
 
 username:data.username,
 password:data.password,
-avatar:data.avatar,
-status:"Hello 😄"
+avatar:data.avatar
 
 });
 
@@ -117,7 +114,7 @@ socket.emit(
 
 socket.on(
 "login",
-data=>{
+async data=>{
 
 const user =
 db.data.users.find(
@@ -140,21 +137,36 @@ return;
 }
 
 socket.username =
-user.username;
+data.username;
 
 onlineUsers[socket.id] =
-user.username;
+data.username;
 
 socket.emit(
 "loginSuccess",
 user
 );
 
-updateUsers();
+const users =
+db.data.users.map(u=>({
 
-sendFriendRequests(user.username);
+username:u.username,
 
-sendFriends(user.username);
+avatar:u.avatar,
+
+online:
+Object.values(
+onlineUsers
+).includes(
+u.username
+)
+
+}));
+
+io.emit(
+"users",
+users
+);
 
 socket.emit(
 "messages",
@@ -164,81 +176,8 @@ db.data.messages
 });
 
 socket.on(
-"sendFriendRequest",
-async data=>{
-
-const exists =
-db.data.friendRequests.find(
-
-r =>
-r.from === data.from &&
-r.to === data.to
-
-);
-
-if(exists) return;
-
-db.data.friendRequests.push({
-
-from:data.from,
-to:data.to
-
-});
-
-await db.write();
-
-sendFriendRequests(data.to);
-
-});
-
-socket.on(
-"acceptFriend",
-async data=>{
-
-db.data.friends.push({
-
-user1:data.user1,
-user2:data.user2
-
-});
-
-db.data.friendRequests =
-db.data.friendRequests.filter(
-
-r => !(
-r.from === data.user2 &&
-r.to === data.user1
-)
-
-);
-
-await db.write();
-
-sendFriends(data.user1);
-sendFriends(data.user2);
-
-});
-
-socket.on(
 "privateMessage",
 async data=>{
-
-const areFriends =
-db.data.friends.find(
-
-f =>
-
-(f.user1 === data.from &&
-f.user2 === data.to)
-
-||
-
-(f.user1 === data.to &&
-f.user2 === data.from)
-
-);
-
-if(!areFriends) return;
 
 const msg = {
 
@@ -264,82 +203,3 @@ socket.on(
 ()=>{
 
 delete onlineUsers[socket.id];
-
-updateUsers();
-
-});
-
-function updateUsers(){
-
-const users =
-db.data.users.map(u=>({
-
-username:u.username,
-avatar:u.avatar,
-status:u.status,
-
-online:
-Object.values(
-onlineUsers
-).includes(
-u.username
-)
-
-}));
-
-io.emit(
-"users",
-users
-);
-
-}
-
-function sendFriendRequests(username){
-
-const requests =
-db.data.friendRequests.filter(
-
-r => r.to === username
-
-);
-
-socket.emit(
-"friendRequests",
-requests
-);
-
-}
-
-function sendFriends(username){
-
-const friends =
-db.data.friends.filter(
-
-f =>
-f.user1 === username ||
-f.user2 === username
-
-);
-
-socket.emit(
-"friends",
-friends
-);
-
-}
-
-});
-
-server.listen(
-process.env.PORT || 3000,
-()=>{
-
-console.log(
-"Server started"
-);
-
-});
-
-}
-
-start();

@@ -24,11 +24,23 @@ document.getElementById("loginBtn");
 const me =
 document.getElementById("me");
 
-const usersDiv =
-document.getElementById("users");
+const friendsTab =
+document.getElementById("friendsTab");
 
-const search =
-document.getElementById("search");
+const searchTab =
+document.getElementById("searchTab");
+
+const requestsTab =
+document.getElementById("requestsTab");
+
+const requestsDiv =
+document.getElementById("requests");
+
+const searchInput =
+document.getElementById("searchInput");
+
+const searchResults =
+document.getElementById("searchResults");
 
 const chatTop =
 document.getElementById("chatTop");
@@ -50,7 +62,38 @@ let allUsers = [];
 
 let allMessages = [];
 
-registerBtn.onclick = async ()=>{
+let myFriends = [];
+
+function openTab(tab){
+
+friendsTab.style.display =
+"none";
+
+searchTab.style.display =
+"none";
+
+requestsTab.style.display =
+"none";
+
+if(tab === "friends")
+friendsTab.style.display =
+"block";
+
+if(tab === "search")
+searchTab.style.display =
+"block";
+
+if(tab === "requests")
+requestsTab.style.display =
+"block";
+
+}
+
+window.openTab =
+openTab;
+
+registerBtn.onclick =
+async ()=>{
 
 let avatar = "";
 
@@ -82,7 +125,9 @@ avatar = data.image;
 
 }
 
-socket.emit("register",{
+socket.emit(
+"register",
+{
 
 username:
 usernameInput.value,
@@ -92,13 +137,18 @@ passwordInput.value,
 
 avatar
 
-});
+}
+
+);
 
 };
 
-loginBtn.onclick = ()=>{
+loginBtn.onclick =
+()=>{
 
-socket.emit("login",{
+socket.emit(
+"login",
+{
 
 username:
 usernameInput.value,
@@ -106,7 +156,9 @@ usernameInput.value,
 password:
 passwordInput.value
 
-});
+}
+
+);
 
 };
 
@@ -136,7 +188,7 @@ currentUser =
 user.username;
 
 me.innerText =
-"👤 " + currentUser;
+"👤 " + user.username;
 
 auth.style.display =
 "none";
@@ -160,25 +212,25 @@ users=>{
 
 allUsers = users;
 
-renderUsers(users);
+renderSearch();
 
 });
 
-function renderUsers(users){
+function renderSearch(){
 
-usersDiv.innerHTML = "";
+searchResults.innerHTML =
+"";
 
-users.forEach(user=>{
+allUsers.forEach(user=>{
 
 if(
 user.username === currentUser
 )
 return;
 
-usersDiv.innerHTML += `
+searchResults.innerHTML += `
 
-<div class="user"
-onclick="selectUser('${user.username}')">
+<div class="user">
 
 <img
 class="avatar"
@@ -187,11 +239,21 @@ src="${user.avatar || ''}"
 
 <div>
 
-${user.online ? "🟢" : "⚫"}
+<b>${user.username}</b>
 
-${user.username}
+<br>
+
+${user.status}
 
 </div>
+
+<button
+onclick="addFriend('${user.username}')"
+>
+
+ADD
+
+</button>
 
 </div>
 
@@ -201,42 +263,140 @@ ${user.username}
 
 }
 
-search.oninput = ()=>{
+function addFriend(user){
 
-const filtered =
-allUsers.filter(
+socket.emit(
+"sendFriendRequest",
+{
 
-u =>
-u.username
-.toLowerCase()
-.includes(
-search.value.toLowerCase()
-)
+from:currentUser,
+to:user
+
+}
 
 );
 
-renderUsers(filtered);
+alert(
+"Friend request sent"
+);
 
-};
+}
 
-function selectUser(user){
+window.addFriend =
+addFriend;
 
-selectedUser = user;
+socket.on(
+"friendRequests",
+requests=>{
+
+requestsDiv.innerHTML =
+"";
+
+requests.forEach(r=>{
+
+requestsDiv.innerHTML += `
+
+<div class="user">
+
+<div>
+
+${r.from}
+
+</div>
+
+<button
+onclick="acceptFriend('${r.from}')"
+>
+
+ACCEPT
+
+</button>
+
+</div>
+
+`;
+
+});
+
+});
+
+function acceptFriend(user){
+
+socket.emit(
+"acceptFriend",
+{
+
+user1:currentUser,
+user2:user
+
+}
+
+);
+
+}
+
+window.acceptFriend =
+acceptFriend;
+
+socket.on(
+"friends",
+friends=>{
+
+myFriends = friends;
+
+renderFriends();
+
+});
+
+function renderFriends(){
+
+friendsTab.innerHTML =
+"";
+
+myFriends.forEach(f=>{
+
+const friend =
+f.user1 === currentUser
+? f.user2
+: f.user1;
+
+friendsTab.innerHTML += `
+
+<div
+class="user"
+onclick="selectFriend('${friend}')"
+>
+
+${friend}
+
+</div>
+
+`;
+
+});
+
+}
+
+function selectFriend(friend){
+
+selectedUser = friend;
 
 chatTop.innerText =
-"Chat with " + user;
+"Chat with " + friend;
 
 renderMessages();
 
 }
 
-window.selectUser =
-selectUser;
+window.selectFriend =
+selectFriend;
 
-sendBtn.onclick = ()=>{
+sendBtn.onclick =
+()=>{
 
 if(
-messageInput.value === "" ||
+messageInput.value === ""
+||
 selectedUser === ""
 )
 return;
@@ -311,8 +471,5 @@ ${msg.text}
 `;
 
 });
-
-chat.scrollTop =
-chat.scrollHeight;
 
 }

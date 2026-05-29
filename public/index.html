@@ -3,7 +3,7 @@
 
 <head>
 
-<title>Messenger V2</title>
+<title>Messenger V3</title>
 
 <link rel="stylesheet" href="style.css">
 
@@ -13,7 +13,7 @@
 
 <div id="auth">
 
-<h1>💬 Messenger V2</h1>
+<h1>💬 Messenger V3</h1>
 
 <input
 id="username"
@@ -47,19 +47,53 @@ LOGIN
 
 <h2 id="me"></h2>
 
-<input
-id="search"
-placeholder="Find friends..."
+<div class="tabs">
+
+<button onclick="openTab('friends')">
+Friends
+</button>
+
+<button onclick="openTab('search')">
+Search
+</button>
+
+<button onclick="openTab('requests')">
+Requests
+</button>
+
+</div>
+
+<div id="friendsTab"></div>
+
+<div
+id="searchTab"
+style="display:none;"
 >
 
-<div id="users"></div>
+<input
+id="searchInput"
+placeholder="Find users..."
+>
+
+<div id="searchResults"></div>
+
+</div>
+
+<div
+id="requestsTab"
+style="display:none;"
+>
+
+<div id="requests"></div>
+
+</div>
 
 </div>
 
 <div id="chatSection">
 
 <div id="chatTop">
-Select chat
+Select friend
 </div>
 
 <div id="chat"></div>
