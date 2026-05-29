@@ -124,23 +124,47 @@ app.get("/users", (req, res) => {
 
 });
 
-app.post("/add-friend", (req, res) => {
+app.post("/add-friend", (req,res)=>{
 
-  const db = loadDB();
+const {from,to} = req.body;
 
-  const {
-    from,
-    to
-  } = req.body;
+const db = readDB();
 
-  const user = db.users.find(
-    u => u.username === to
-  );
+const user =
+db.users.find(
+u => u.username === to
+);
 
-  if (!user) {
-    return res.json({
-      error: "User not found"
-    });
+if(!user){
+
+return res.json({
+error:"User not found"
+});
+
+}
+
+if(!user.requests){
+
+user.requests = [];
+
+}
+
+if(
+!user.requests.includes(from)
+){
+
+user.requests.push(from);
+
+}
+
+writeDB(db);
+
+res.json({
+success:true
+});
+
+});
+
   }
 
   if (!user.requests.includes(from)) {
@@ -155,47 +179,68 @@ app.post("/add-friend", (req, res) => {
 
 });
 
-app.post("/accept-friend", (req, res) => {
+app.post("/accept-friend", (req,res)=>{
 
-  const db = loadDB();
+const {user,friend} = req.body;
 
-  const {
-    user,
-    friend
-  } = req.body;
+const db = readDB();
 
-  const u1 = db.users.find(
-    u => u.username === user
-  );
+const me =
+db.users.find(
+u => u.username === user
+);
 
-  const u2 = db.users.find(
-    u => u.username === friend
-  );
+const other =
+db.users.find(
+u => u.username === friend
+);
 
-  if (!u1 || !u2) {
-    return res.json({
-      error: "Users not found"
-    });
-  }
+if(!me || !other){
 
-  if (!u1.friends.includes(friend)) {
-    u1.friends.push(friend);
-  }
+return res.json({
+error:"Users not found"
+});
 
-  if (!u2.friends.includes(user)) {
-    u2.friends.push(user);
-  }
+}
 
-  u1.requests =
-    u1.requests.filter(
-      r => r !== friend
-    );
+if(!me.friends){
 
-  saveDB(db);
+me.friends = [];
 
-  res.json({
-    success: true
-  });
+}
+
+if(!other.friends){
+
+other.friends = [];
+
+}
+
+if(
+!me.friends.includes(friend)
+){
+
+me.friends.push(friend);
+
+}
+
+if(
+!other.friends.includes(user)
+){
+
+other.friends.push(user);
+
+}
+
+me.requests =
+me.requests.filter(
+r => r !== friend
+);
+
+writeDB(db);
+
+res.json({
+success:true
+});
 
 });
 
