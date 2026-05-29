@@ -1,5 +1,3 @@
-const socket = io();
-
 const auth = document.getElementById("auth");
 const app = document.getElementById("app");
 
@@ -8,9 +6,6 @@ document.getElementById("username");
 
 const passwordInput =
 document.getElementById("password");
-
-const avatarInput =
-document.getElementById("avatar");
 
 const registerBtn =
 document.getElementById("registerBtn");
@@ -26,6 +21,9 @@ document.getElementById("friendsTab");
 
 const requestsTab =
 document.getElementById("requestsTab");
+
+const searchTab =
+document.getElementById("searchTab");
 
 const searchInput =
 document.getElementById("searchInput");
@@ -46,510 +44,445 @@ const chatTop =
 document.getElementById("chatTop");
 
 let currentUser = null;
+
 let currentChat = null;
 
 app.style.display = "none";
 
-function showTab(tab) {
+function showTab(tab){
 
-  friendsTab.style.display = "none";
-  searchTab.style.display = "none";
-  requestsTab.style.display = "none";
+friendsTab.style.display = "none";
+requestsTab.style.display = "none";
+searchTab.style.display = "none";
 
-  if (tab === "friends") {
-    friendsTab.style.display = "block";
-  }
+if(tab === "friends"){
+friendsTab.style.display = "block";
+}
 
-  if (tab === "search") {
-    searchTab.style.display = "block";
-  }
+if(tab === "requests"){
+requestsTab.style.display = "block";
+}
 
-  if (tab === "requests") {
-    requestsTab.style.display = "block";
-  }
+if(tab === "search"){
+searchTab.style.display = "block";
+}
 
 }
+
+window.showTab = showTab;
 
 showTab("friends");
 
-async function uploadAvatar() {
+registerBtn.onclick =
+async ()=>{
 
-  const file =
-  avatarInput.files[0];
+const res =
+await fetch("/register",{
 
-  if (!file) {
-    return "";
-  }
+method:"POST",
 
-  const formData =
-  new FormData();
+headers:{
+"Content-Type":
+"application/json"
+},
 
-  formData.append(
-    "avatar",
-    file
-  );
+body:JSON.stringify({
 
-  const res = await fetch(
-    "/upload",
-    {
-      method: "POST",
-      body: formData
-    }
-  );
+username:
+usernameInput.value,
 
-  const data =
-  await res.json();
+password:
+passwordInput.value,
 
-  return data.image;
+avatar:""
+
+})
+
+});
+
+const data =
+await res.json();
+
+if(data.error){
+
+alert(data.error);
+return;
 
 }
 
-registerBtn.onclick =
-async () => {
-
-  const avatar =
-  await uploadAvatar();
-
-  const res = await fetch(
-    "/register",
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type":
-        "application/json"
-      },
-
-      body: JSON.stringify({
-        username:
-        usernameInput.value,
-
-        password:
-        passwordInput.value,
-
-        avatar
-      })
-
-    }
-  );
-
-  const data =
-  await res.json();
-
-  if (data.error) {
-    return alert(data.error);
-  }
-
-  alert("Account created");
+alert("Account created");
 
 };
 
 loginBtn.onclick =
-async () => {
+async ()=>{
 
-  const res = await fetch(
-    "/login",
-    {
-      method: "POST",
+const res =
+await fetch("/login",{
 
-      headers: {
-        "Content-Type":
-        "application/json"
-      },
+method:"POST",
 
-      body: JSON.stringify({
-        username:
-        usernameInput.value,
+headers:{
+"Content-Type":
+"application/json"
+},
 
-        password:
-        passwordInput.value
-      })
+body:JSON.stringify({
 
-    }
-  );
+username:
+usernameInput.value,
 
-  const data =
-  await res.json();
+password:
+passwordInput.value
 
-  if (data.error) {
-    return alert(data.error);
-  }
+})
 
-  currentUser = data;
+});
 
-  auth.style.display =
-  "none";
+const data =
+await res.json();
 
-  app.style.display =
-  "flex";
+if(data.error){
 
-  me.innerHTML = `
-  <img
-  src="${data.avatar}"
-  class="avatar"
-  >
-
-  ${data.username}
-
-  <div class="status">
-  ${data.status}
-  </div>
-  `;
-
-   await loadRequests();
- 
-   await loadFriends();
-
-};
-
-async function loadFriends() {
-
-  friendsTab.innerHTML = "";
-
-  const res = await fetch(
-    "/users"
-  );
-
-  const users =
-  await res.json();
-
-  const meUser =
-  users.find(
-    u =>
-    u.username ===
-    currentUser.username
-  );
-
-  meUser.friends.forEach(
-    friend => {
-
-      const user =
-      users.find(
-        u =>
-        u.username === friend
-      );
-
-      const div =
-      document.createElement(
-        "div"
-      );
-
-      div.className =
-      "friend";
-
-      div.innerHTML = `
-      <img
-      src="${user.avatar}"
-      class="smallAvatar"
-      >
-
-      <div>
-      <b>${user.username}</b>
-
-      <div>
-      ${user.status}
-      </div>
-      </div>
-      `;
-
-      div.onclick = () => {
-        openChat(friend);
-      };
-
-      friendsTab.appendChild(
-        div
-      );
-
-    }
-  );
+alert(data.error);
+return;
 
 }
 
-async function loadRequests() {
+currentUser = data;
 
-  requestsTab.innerHTML = "";
+auth.style.display = "none";
+app.style.display = "flex";
 
-  const res = await fetch(
-    "/users"
-  );
+me.innerHTML =
+"👤 " + data.username;
 
-  const users =
-  await res.json();
+loadFriends();
+loadRequests();
 
-  const meUser =
-  users.find(
-    u =>
-    u.username ===
-    currentUser.username
-  );
+};
 
-  meUser.requests.forEach(
-    req => {
+async function loadFriends(){
 
-      const div =
-      document.createElement(
-        "div"
-      );
+friendsTab.innerHTML = "";
 
-      div.className =
-      "request";
+const res =
+await fetch("/users");
 
-      div.innerHTML = `
-      <b>${req}</b>
+const users =
+await res.json();
 
-      <button>
-      ACCEPT
-      </button>
-      `;
+const meUser =
+users.find(
+u =>
+u.username ===
+currentUser.username
+);
 
-      div.querySelector(
-        "button"
-      ).onclick =
-      async () => {
+if(!meUser) return;
 
-        await fetch(
-          "/accept-friend",
-          {
-            method: "POST",
+meUser.friends.forEach(friend=>{
 
-            headers: {
-              "Content-Type":
-              "application/json"
-            },
+const div =
+document.createElement("div");
 
-            body: JSON.stringify({
-              user:
-              currentUser.username,
+div.className = "friend";
 
-              friend: req
-            })
+div.innerHTML = `
 
-          }
-        );
+<div>
 
-        loadRequests();
-        loadFriends();
+<b>${friend}</b>
 
-      };
+</div>
 
-      requestsTab.appendChild(
-        div
-      );
+`;
 
-    }
-  );
+div.onclick = ()=>{
+
+openChat(friend);
+
+};
+
+friendsTab.appendChild(div);
+
+});
+
+}
+
+async function loadRequests(){
+
+requestsTab.innerHTML = "";
+
+const res =
+await fetch("/users");
+
+const users =
+await res.json();
+
+const meUser =
+users.find(
+u =>
+u.username ===
+currentUser.username
+);
+
+if(!meUser) return;
+
+meUser.requests.forEach(req=>{
+
+const div =
+document.createElement("div");
+
+div.className = "request";
+
+div.innerHTML = `
+
+<div>
+
+<b>${req}</b>
+
+</div>
+
+<button>
+ACCEPT
+</button>
+
+`;
+
+div.querySelector("button")
+.onclick =
+async ()=>{
+
+await fetch(
+"/accept-friend",
+{
+
+method:"POST",
+
+headers:{
+"Content-Type":
+"application/json"
+},
+
+body:JSON.stringify({
+
+user:
+currentUser.username,
+
+friend:req
+
+})
+
+});
+
+await loadRequests();
+await loadFriends();
+
+};
+
+requestsTab.appendChild(div);
+
+});
 
 }
 
 searchInput.oninput =
-async () => {
+async ()=>{
 
-  searchResults.innerHTML = "";
+searchResults.innerHTML = "";
 
-  const res = await fetch(
-    "/users"
-  );
+const res =
+await fetch("/users");
 
-  const users =
-  await res.json();
+const users =
+await res.json();
 
-  users.forEach(user => {
+users.forEach(user=>{
 
-    if (
-      user.username
-      .toLowerCase()
-      .includes(
-        searchInput.value
-        .toLowerCase()
-      )
-      &&
-      user.username !==
-      currentUser.username
-    ) {
+if(
 
-      const div =
-      document.createElement(
-        "div"
-      );
+user.username
+.toLowerCase()
+.includes(
+searchInput.value
+.toLowerCase()
+)
 
-      div.className =
-      "searchUser";
+&&
 
-      div.innerHTML = `
-      <img
-      src="${user.avatar}"
-      class="smallAvatar"
-      >
+user.username !==
+currentUser.username
 
-      <div>
-      <b>${user.username}</b>
+){
 
-      <div>
-      ${user.status}
-      </div>
-      </div>
+const div =
+document.createElement("div");
 
-      <button>
-      ADD
-      </button>
-      `;
+div.className =
+"searchUser";
 
-      div.querySelector(
-        "button"
-      ).onclick =
-      async () => {
+div.innerHTML = `
 
-        await fetch(
-          "/add-friend",
-          {
-            method: "POST",
+<div>
 
-            headers: {
-              "Content-Type":
-              "application/json"
-            },
+<b>${user.username}</b>
 
-            body: JSON.stringify({
-              from:
-              currentUser.username,
+</div>
 
-              to:
-              user.username
-            })
+<button>
+ADD
+</button>
 
-          }
-        );
+`;
 
-        alert(
-          "Friend request sent"
-        );
+div.querySelector("button")
+.onclick =
+async ()=>{
 
-         loadRequests();
+await fetch(
+"/add-friend",
+{
 
-        };
+method:"POST",
 
-      searchResults.appendChild(
-        div
-      );
+headers:{
+"Content-Type":
+"application/json"
+},
 
-    }
+body:JSON.stringify({
 
-  });
+from:
+currentUser.username,
+
+to:
+user.username
+
+})
+
+});
+
+alert(
+"Request sent"
+);
 
 };
 
-async function openChat(friend) {
-
-  currentChat = friend;
-
-  chatTop.innerText =
-  "Chat with " + friend;
-
-  loadMessages();
+searchResults.appendChild(div);
 
 }
 
-async function loadMessages() {
+});
 
-  const res = await fetch(
-    "/messages"
-  );
+};
 
-  const messages =
-  await res.json();
+function openChat(friend){
 
-  chat.innerHTML = "";
+currentChat = friend;
 
-  messages.forEach(msg => {
+chatTop.innerText =
+"Chat with " + friend;
 
-    if (
+loadMessages();
 
-      (
-        msg.from ===
-        currentUser.username
+}
 
-        &&
+async function loadMessages(){
 
-        msg.to ===
-        currentChat
-      )
+const res =
+await fetch("/messages");
 
-      ||
+const messages =
+await res.json();
 
-      (
-        msg.from ===
-        currentChat
+chat.innerHTML = "";
 
-        &&
+messages.forEach(msg=>{
 
-        msg.to ===
-        currentUser.username
-      )
+if(
 
-    ) {
+(
+msg.from ===
+currentUser.username
 
-      const div =
-      document.createElement(
-        "div"
-      );
+&&
 
-      div.className =
-      "message";
+msg.to ===
+currentChat
+)
 
-      div.innerHTML = `
-      <b>${msg.from}</b>
+||
 
-      <div>
-      ${msg.text}
-      </div>
-      `;
+(
+msg.from ===
+currentChat
 
-      chat.appendChild(div);
+&&
 
-    }
+msg.to ===
+currentUser.username
+)
 
-  });
+){
+
+const div =
+document.createElement("div");
+
+div.className =
+"message";
+
+div.innerHTML = `
+
+<b>${msg.from}</b>
+
+<div>
+${msg.text}
+</div>
+
+`;
+
+chat.appendChild(div);
+
+}
+
+});
 
 }
 
 sendBtn.onclick =
-async () => {
+async ()=>{
 
-  if (!currentChat) {
-    return;
-  }
+if(!currentChat) return;
 
-  await fetch(
-    "/send-message",
-    {
-      method: "POST",
+await fetch(
+"/send-message",
+{
 
-      headers: {
-        "Content-Type":
-        "application/json"
-      },
+method:"POST",
 
-      body: JSON.stringify({
-        from:
-        currentUser.username,
+headers:{
+"Content-Type":
+"application/json"
+},
 
-        to:
-        currentChat,
+body:JSON.stringify({
 
-        text:
-        messageInput.value
-      })
+from:
+currentUser.username,
 
-    }
-  );
+to:
+currentChat,
 
-  messageInput.value = "";
+text:
+messageInput.value
 
-  loadMessages();
+})
+
+});
+
+messageInput.value = "";
+
+loadMessages();
 
 };
-
-socket.on(
-  "newMessage",
-  loadMessages
-);
