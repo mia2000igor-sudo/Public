@@ -3,7 +3,9 @@
 
 <head>
 
-<title>Messenger V3</title>
+<meta charset="UTF-8">
+
+<title>Messenger V4</title>
 
 <link rel="stylesheet" href="style.css">
 
@@ -13,7 +15,7 @@
 
 <div id="auth">
 
-<h1>💬 Messenger V3</h1>
+<h1>💬 Messenger V4</h1>
 
 <input
 id="username"
@@ -41,7 +43,7 @@ LOGIN
 
 </div>
 
-<div id="app" style="display:none;">
+<div id="app">
 
 <div id="sidebar">
 
@@ -49,15 +51,15 @@ LOGIN
 
 <div class="tabs">
 
-<button onclick="openTab('friends')">
+<button onclick="showTab('friends')">
 Friends
 </button>
 
-<button onclick="openTab('search')">
+<button onclick="showTab('search')">
 Search
 </button>
 
-<button onclick="openTab('requests')">
+<button onclick="showTab('requests')">
 Requests
 </button>
 
@@ -65,10 +67,7 @@ Requests
 
 <div id="friendsTab"></div>
 
-<div
-id="searchTab"
-style="display:none;"
->
+<div id="searchTab">
 
 <input
 id="searchInput"
@@ -79,21 +78,16 @@ placeholder="Find users..."
 
 </div>
 
-<div
-id="requestsTab"
-style="display:none;"
->
-
-<div id="requests"></div>
-
-</div>
+<div id="requestsTab"></div>
 
 </div>
 
 <div id="chatSection">
 
 <div id="chatTop">
+
 Select friend
+
 </div>
 
 <div id="chat"></div>

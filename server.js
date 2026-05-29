@@ -2,344 +2,250 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const multer = require("multer");
-
-const { Low } = require("lowdb");
-const { JSONFile } = require("lowdb/node");
+const fs = require("fs");
 
 const app = express();
-
 const server = http.createServer(app);
-
 const io = new Server(server);
 
 app.use(express.static("public"));
 app.use(express.json());
 
-app.use(
-"/uploads",
-express.static("uploads")
-);
-
-const storage =
-multer.diskStorage({
-
-destination:(req,file,cb)=>{
-
-cb(null,"uploads");
-
-},
-
-filename:(req,file,cb)=>{
-
-cb(
-null,
-Date.now() + "-" + file.originalname
-);
-
+if (!fs.existsSync("uploads")) {
+  fs.mkdirSync("uploads");
 }
 
+app.use("/uploads", express.static("uploads"));
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads");
+  },
+
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  }
 });
 
-const upload =
-multer({ storage });
+const upload = multer({ storage });
+
+function loadDB() {
+  return JSON.parse(
+    fs.readFileSync("db.json")
+  );
+}
+
+function saveDB(data) {
+  fs.writeFileSync(
+    "db.json",
+    JSON.stringify(data, null, 2)
+  );
+}
 
 app.post(
-"/upload",
-upload.single("avatar"),
-(req,res)=>{
+  "/upload",
+  upload.single("avatar"),
+  (req, res) => {
 
-res.json({
+    res.json({
+      image: "/uploads/" + req.file.filename
+    });
 
-image:
-"/uploads/" + req.file.filename
+  }
+);
+
+app.post("/register", (req, res) => {
+
+  const db = loadDB();
+
+  const {
+    username,
+    password,
+    avatar
+  } = req.body;
+
+  const exists = db.users.find(
+    u => u.username === username
+  );
+
+  if (exists) {
+    return res.json({
+      error: "User already exists"
+    });
+  }
+
+  db.users.push({
+    username,
+    password,
+    avatar,
+    status: "Hello 😄",
+    friends: [],
+    requests: []
+  });
+
+  saveDB(db);
+
+  res.json({
+    success: true
+  });
 
 });
 
-});
+app.post("/login", (req, res) => {
 
-const adapter =
-new JSONFile("db.json");
+  const db = loadDB();
 
-const db =
-new Low(adapter, {
+  const {
+    username,
+    password
+  } = req.body;
 
-users: [],
-messages: [],
-friendRequests: [],
-friends: []
+  const user = db.users.find(
+    u =>
+      u.username === username &&
+      u.password === password
+  );
 
-});
+  if (!user) {
+    return res.json({
+      error: "Wrong login"
+    });
+  }
 
-let onlineUsers = {};
-
-async function start(){
-
-await db.read();
-
-io.on("connection", socket=>{
-
-socket.on(
-"register",
-async data=>{
-
-const exists =
-db.data.users.find(
-u => u.username === data.username
-);
-
-if(exists){
-
-socket.emit(
-"registerError",
-"User already exists"
-);
-
-return;
-
-}
-
-db.data.users.push({
-
-username:data.username,
-password:data.password,
-avatar:data.avatar,
-status:"Hello 😄"
+  res.json(user);
 
 });
 
-await db.write();
+app.get("/users", (req, res) => {
 
-socket.emit(
-"registerSuccess"
-);
+  const db = loadDB();
 
-});
-
-socket.on(
-"login",
-data=>{
-
-const user =
-db.data.users.find(
-
-u =>
-u.username === data.username &&
-u.password === data.password
-
-);
-
-if(!user){
-
-socket.emit(
-"loginError",
-"Wrong login"
-);
-
-return;
-
-}
-
-socket.username =
-user.username;
-
-onlineUsers[socket.id] =
-user.username;
-
-socket.emit(
-"loginSuccess",
-user
-);
-
-updateUsers();
-
-sendFriendRequests(user.username);
-
-sendFriends(user.username);
-
-socket.emit(
-"messages",
-db.data.messages
-);
+  res.json(db.users);
 
 });
 
-socket.on(
-"sendFriendRequest",
-async data=>{
+app.post("/add-friend", (req, res) => {
 
-const exists =
-db.data.friendRequests.find(
+  const db = loadDB();
 
-r =>
-r.from === data.from &&
-r.to === data.to
+  const {
+    from,
+    to
+  } = req.body;
 
-);
+  const user = db.users.find(
+    u => u.username === to
+  );
 
-if(exists) return;
+  if (!user) {
+    return res.json({
+      error: "User not found"
+    });
+  }
 
-db.data.friendRequests.push({
+  if (!user.requests.includes(from)) {
+    user.requests.push(from);
+  }
 
-from:data.from,
-to:data.to
+  saveDB(db);
 
-});
-
-await db.write();
-
-sendFriendRequests(data.to);
-
-});
-
-socket.on(
-"acceptFriend",
-async data=>{
-
-db.data.friends.push({
-
-user1:data.user1,
-user2:data.user2
+  res.json({
+    success: true
+  });
 
 });
 
-db.data.friendRequests =
-db.data.friendRequests.filter(
+app.post("/accept-friend", (req, res) => {
 
-r => !(
-r.from === data.user2 &&
-r.to === data.user1
-)
+  const db = loadDB();
 
-);
+  const {
+    user,
+    friend
+  } = req.body;
 
-await db.write();
+  const u1 = db.users.find(
+    u => u.username === user
+  );
 
-sendFriends(data.user1);
-sendFriends(data.user2);
+  const u2 = db.users.find(
+    u => u.username === friend
+  );
 
-});
+  if (!u1 || !u2) {
+    return res.json({
+      error: "Users not found"
+    });
+  }
 
-socket.on(
-"privateMessage",
-async data=>{
+  if (!u1.friends.includes(friend)) {
+    u1.friends.push(friend);
+  }
 
-const areFriends =
-db.data.friends.find(
+  if (!u2.friends.includes(user)) {
+    u2.friends.push(user);
+  }
 
-f =>
+  u1.requests =
+    u1.requests.filter(
+      r => r !== friend
+    );
 
-(f.user1 === data.from &&
-f.user2 === data.to)
+  saveDB(db);
 
-||
-
-(f.user1 === data.to &&
-f.user2 === data.from)
-
-);
-
-if(!areFriends) return;
-
-const msg = {
-
-from:data.from,
-to:data.to,
-text:data.text
-
-};
-
-db.data.messages.push(msg);
-
-await db.write();
-
-io.emit(
-"privateMessage",
-msg
-);
+  res.json({
+    success: true
+  });
 
 });
 
-socket.on(
-"disconnect",
-()=>{
+app.get("/messages", (req, res) => {
 
-delete onlineUsers[socket.id];
+  const db = loadDB();
 
-updateUsers();
+  res.json(db.messages);
 
 });
 
-function updateUsers(){
+app.post("/send-message", (req, res) => {
 
-const users =
-db.data.users.map(u=>({
+  const db = loadDB();
 
-username:u.username,
-avatar:u.avatar,
-status:u.status,
+  const {
+    from,
+    to,
+    text
+  } = req.body;
 
-online:
-Object.values(
-onlineUsers
-).includes(
-u.username
-)
+  db.messages.push({
+    from,
+    to,
+    text
+  });
 
-}));
+  saveDB(db);
 
-io.emit(
-"users",
-users
-);
+  io.emit("newMessage");
 
-}
+  res.json({
+    success: true
+  });
 
-function sendFriendRequests(username){
+});
 
-const requests =
-db.data.friendRequests.filter(
+io.on("connection", socket => {
 
-r => r.to === username
-
-);
-
-socket.emit(
-"friendRequests",
-requests
-);
-
-}
-
-function sendFriends(username){
-
-const friends =
-db.data.friends.filter(
-
-f =>
-f.user1 === username ||
-f.user2 === username
-
-);
-
-socket.emit(
-"friends",
-friends
-);
-
-}
+  console.log("User connected");
 
 });
 
 server.listen(
-process.env.PORT || 3000,
-()=>{
+  process.env.PORT || 3000,
+  () => {
 
-console.log(
-"Server started"
+    console.log(
+      "Server started"
+    );
+
+  }
 );
-
-});
-
-}
-
-start();

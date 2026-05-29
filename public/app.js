@@ -1,10 +1,7 @@
 const socket = io();
 
-const auth =
-document.getElementById("auth");
-
-const app =
-document.getElementById("app");
+const auth = document.getElementById("auth");
+const app = document.getElementById("app");
 
 const usernameInput =
 document.getElementById("username");
@@ -27,14 +24,8 @@ document.getElementById("me");
 const friendsTab =
 document.getElementById("friendsTab");
 
-const searchTab =
-document.getElementById("searchTab");
-
 const requestsTab =
 document.getElementById("requestsTab");
-
-const requestsDiv =
-document.getElementById("requests");
 
 const searchInput =
 document.getElementById("searchInput");
@@ -42,434 +33,520 @@ document.getElementById("searchInput");
 const searchResults =
 document.getElementById("searchResults");
 
-const chatTop =
-document.getElementById("chatTop");
-
 const chat =
 document.getElementById("chat");
-
-const messageInput =
-document.getElementById("messageInput");
 
 const sendBtn =
 document.getElementById("sendBtn");
 
-let currentUser = "";
+const messageInput =
+document.getElementById("messageInput");
 
-let selectedUser = "";
+const chatTop =
+document.getElementById("chatTop");
 
-let allUsers = [];
+let currentUser = null;
+let currentChat = null;
 
-let allMessages = [];
+app.style.display = "none";
 
-let myFriends = [];
+function showTab(tab) {
 
-function openTab(tab){
+  friendsTab.style.display = "none";
+  searchTab.style.display = "none";
+  requestsTab.style.display = "none";
 
-friendsTab.style.display =
-"none";
+  if (tab === "friends") {
+    friendsTab.style.display = "block";
+  }
 
-searchTab.style.display =
-"none";
+  if (tab === "search") {
+    searchTab.style.display = "block";
+  }
 
-requestsTab.style.display =
-"none";
-
-if(tab === "friends")
-friendsTab.style.display =
-"block";
-
-if(tab === "search")
-searchTab.style.display =
-"block";
-
-if(tab === "requests")
-requestsTab.style.display =
-"block";
+  if (tab === "requests") {
+    requestsTab.style.display = "block";
+  }
 
 }
 
-window.openTab =
-openTab;
+showTab("friends");
+
+async function uploadAvatar() {
+
+  const file =
+  avatarInput.files[0];
+
+  if (!file) {
+    return "";
+  }
+
+  const formData =
+  new FormData();
+
+  formData.append(
+    "avatar",
+    file
+  );
+
+  const res = await fetch(
+    "/upload",
+    {
+      method: "POST",
+      body: formData
+    }
+  );
+
+  const data =
+  await res.json();
+
+  return data.image;
+
+}
 
 registerBtn.onclick =
-async ()=>{
+async () => {
 
-let avatar = "";
+  const avatar =
+  await uploadAvatar();
 
-const file =
-avatarInput.files[0];
+  const res = await fetch(
+    "/register",
+    {
+      method: "POST",
 
-if(file){
+      headers: {
+        "Content-Type":
+        "application/json"
+      },
 
-const formData =
-new FormData();
+      body: JSON.stringify({
+        username:
+        usernameInput.value,
 
-formData.append(
-"avatar",
-file
-);
+        password:
+        passwordInput.value,
 
-const res =
-await fetch("/upload",{
+        avatar
+      })
 
-method:"POST",
-body:formData
+    }
+  );
 
-});
+  const data =
+  await res.json();
 
-const data =
-await res.json();
+  if (data.error) {
+    return alert(data.error);
+  }
 
-avatar = data.image;
-
-}
-
-socket.emit(
-"register",
-{
-
-username:
-usernameInput.value,
-
-password:
-passwordInput.value,
-
-avatar
-
-}
-
-);
+  alert("Account created");
 
 };
 
 loginBtn.onclick =
-()=>{
+async () => {
 
-socket.emit(
-"login",
-{
+  const res = await fetch(
+    "/login",
+    {
+      method: "POST",
 
-username:
-usernameInput.value,
+      headers: {
+        "Content-Type":
+        "application/json"
+      },
 
-password:
-passwordInput.value
+      body: JSON.stringify({
+        username:
+        usernameInput.value,
 
-}
+        password:
+        passwordInput.value
+      })
 
-);
+    }
+  );
+
+  const data =
+  await res.json();
+
+  if (data.error) {
+    return alert(data.error);
+  }
+
+  currentUser = data;
+
+  auth.style.display =
+  "none";
+
+  app.style.display =
+  "flex";
+
+  me.innerHTML = `
+  <img
+  src="${data.avatar}"
+  class="avatar"
+  >
+
+  ${data.username}
+
+  <div class="status">
+  ${data.status}
+  </div>
+  `;
+
+  loadFriends();
+  loadRequests();
 
 };
 
-socket.on(
-"registerSuccess",
-()=>{
+async function loadFriends() {
 
-alert(
-"Account created"
-);
+  friendsTab.innerHTML = "";
 
-});
+  const res = await fetch(
+    "/users"
+  );
 
-socket.on(
-"registerError",
-err=>{
+  const users =
+  await res.json();
 
-alert(err);
+  const meUser =
+  users.find(
+    u =>
+    u.username ===
+    currentUser.username
+  );
 
-});
+  meUser.friends.forEach(
+    friend => {
 
-socket.on(
-"loginSuccess",
-user=>{
+      const user =
+      users.find(
+        u =>
+        u.username === friend
+      );
 
-currentUser =
-user.username;
+      const div =
+      document.createElement(
+        "div"
+      );
 
-me.innerText =
-"👤 " + user.username;
+      div.className =
+      "friend";
 
-auth.style.display =
-"none";
+      div.innerHTML = `
+      <img
+      src="${user.avatar}"
+      class="smallAvatar"
+      >
 
-app.style.display =
-"flex";
+      <div>
+      <b>${user.username}</b>
 
-});
+      <div>
+      ${user.status}
+      </div>
+      </div>
+      `;
 
-socket.on(
-"loginError",
-err=>{
+      div.onclick = () => {
+        openChat(friend);
+      };
 
-alert(err);
+      friendsTab.appendChild(
+        div
+      );
 
-});
-
-socket.on(
-"users",
-users=>{
-
-allUsers = users;
-
-renderSearch();
-
-});
-
-function renderSearch(){
-
-searchResults.innerHTML =
-"";
-
-allUsers.forEach(user=>{
-
-if(
-user.username === currentUser
-)
-return;
-
-searchResults.innerHTML += `
-
-<div class="user">
-
-<img
-class="avatar"
-src="${user.avatar || ''}"
->
-
-<div>
-
-<b>${user.username}</b>
-
-<br>
-
-${user.status}
-
-</div>
-
-<button
-onclick="addFriend('${user.username}')"
->
-
-ADD
-
-</button>
-
-</div>
-
-`;
-
-});
+    }
+  );
 
 }
 
-function addFriend(user){
+async function loadRequests() {
 
-socket.emit(
-"sendFriendRequest",
-{
+  requestsTab.innerHTML = "";
 
-from:currentUser,
-to:user
+  const res = await fetch(
+    "/users"
+  );
 
-}
+  const users =
+  await res.json();
 
-);
+  const meUser =
+  users.find(
+    u =>
+    u.username ===
+    currentUser.username
+  );
 
-alert(
-"Friend request sent"
-);
+  meUser.requests.forEach(
+    req => {
 
-}
+      const div =
+      document.createElement(
+        "div"
+      );
 
-window.addFriend =
-addFriend;
+      div.className =
+      "request";
 
-socket.on(
-"friendRequests",
-requests=>{
+      div.innerHTML = `
+      <b>${req}</b>
 
-requestsDiv.innerHTML =
-"";
+      <button>
+      ACCEPT
+      </button>
+      `;
 
-requests.forEach(r=>{
+      div.querySelector(
+        "button"
+      ).onclick =
+      async () => {
 
-requestsDiv.innerHTML += `
+        await fetch(
+          "/accept-friend",
+          {
+            method: "POST",
 
-<div class="user">
+            headers: {
+              "Content-Type":
+              "application/json"
+            },
 
-<div>
+            body: JSON.stringify({
+              user:
+              currentUser.username,
 
-${r.from}
+              friend: req
+            })
 
-</div>
+          }
+        );
 
-<button
-onclick="acceptFriend('${r.from}')"
->
+        loadRequests();
+        loadFriends();
 
-ACCEPT
+      };
 
-</button>
+      requestsTab.appendChild(
+        div
+      );
 
-</div>
-
-`;
-
-});
-
-});
-
-function acceptFriend(user){
-
-socket.emit(
-"acceptFriend",
-{
-
-user1:currentUser,
-user2:user
-
-}
-
-);
-
-}
-
-window.acceptFriend =
-acceptFriend;
-
-socket.on(
-"friends",
-friends=>{
-
-myFriends = friends;
-
-renderFriends();
-
-});
-
-function renderFriends(){
-
-friendsTab.innerHTML =
-"";
-
-myFriends.forEach(f=>{
-
-const friend =
-f.user1 === currentUser
-? f.user2
-: f.user1;
-
-friendsTab.innerHTML += `
-
-<div
-class="user"
-onclick="selectFriend('${friend}')"
->
-
-${friend}
-
-</div>
-
-`;
-
-});
+    }
+  );
 
 }
 
-function selectFriend(friend){
+searchInput.oninput =
+async () => {
 
-selectedUser = friend;
+  searchResults.innerHTML = "";
 
-chatTop.innerText =
-"Chat with " + friend;
+  const res = await fetch(
+    "/users"
+  );
 
-renderMessages();
+  const users =
+  await res.json();
+
+  users.forEach(user => {
+
+    if (
+      user.username
+      .toLowerCase()
+      .includes(
+        searchInput.value
+        .toLowerCase()
+      )
+      &&
+      user.username !==
+      currentUser.username
+    ) {
+
+      const div =
+      document.createElement(
+        "div"
+      );
+
+      div.className =
+      "searchUser";
+
+      div.innerHTML = `
+      <img
+      src="${user.avatar}"
+      class="smallAvatar"
+      >
+
+      <div>
+      <b>${user.username}</b>
+
+      <div>
+      ${user.status}
+      </div>
+      </div>
+
+      <button>
+      ADD
+      </button>
+      `;
+
+      div.querySelector(
+        "button"
+      ).onclick =
+      async () => {
+
+        await fetch(
+          "/add-friend",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+              "application/json"
+            },
+
+            body: JSON.stringify({
+              from:
+              currentUser.username,
+
+              to:
+              user.username
+            })
+
+          }
+        );
+
+        alert(
+          "Friend request sent"
+        );
+
+      };
+
+      searchResults.appendChild(
+        div
+      );
+
+    }
+
+  });
+
+};
+
+async function openChat(friend) {
+
+  currentChat = friend;
+
+  chatTop.innerText =
+  "Chat with " + friend;
+
+  loadMessages();
 
 }
 
-window.selectFriend =
-selectFriend;
+async function loadMessages() {
+
+  const res = await fetch(
+    "/messages"
+  );
+
+  const messages =
+  await res.json();
+
+  chat.innerHTML = "";
+
+  messages.forEach(msg => {
+
+    if (
+
+      (
+        msg.from ===
+        currentUser.username
+
+        &&
+
+        msg.to ===
+        currentChat
+      )
+
+      ||
+
+      (
+        msg.from ===
+        currentChat
+
+        &&
+
+        msg.to ===
+        currentUser.username
+      )
+
+    ) {
+
+      const div =
+      document.createElement(
+        "div"
+      );
+
+      div.className =
+      "message";
+
+      div.innerHTML = `
+      <b>${msg.from}</b>
+
+      <div>
+      ${msg.text}
+      </div>
+      `;
+
+      chat.appendChild(div);
+
+    }
+
+  });
+
+}
 
 sendBtn.onclick =
-()=>{
+async () => {
 
-if(
-messageInput.value === ""
-||
-selectedUser === ""
-)
-return;
+  if (!currentChat) {
+    return;
+  }
 
-socket.emit(
-"privateMessage",
-{
+  await fetch(
+    "/send-message",
+    {
+      method: "POST",
 
-from:currentUser,
-to:selectedUser,
-text:messageInput.value
+      headers: {
+        "Content-Type":
+        "application/json"
+      },
 
-}
+      body: JSON.stringify({
+        from:
+        currentUser.username,
 
-);
+        to:
+        currentChat,
 
-messageInput.value = "";
+        text:
+        messageInput.value
+      })
+
+    }
+  );
+
+  messageInput.value = "";
+
+  loadMessages();
 
 };
 
 socket.on(
-"messages",
-messages=>{
-
-allMessages = messages;
-
-});
-
-socket.on(
-"privateMessage",
-msg=>{
-
-allMessages.push(msg);
-
-renderMessages();
-
-});
-
-function renderMessages(){
-
-chat.innerHTML = "";
-
-const filtered =
-allMessages.filter(
-
-m =>
-
-(m.from === currentUser &&
-m.to === selectedUser)
-
-||
-
-(m.from === selectedUser &&
-m.to === currentUser)
-
+  "newMessage",
+  loadMessages
 );
-
-filtered.forEach(msg=>{
-
-chat.innerHTML += `
-
-<div class="message">
-
-<b>${msg.from}</b>
-
-<br>
-
-${msg.text}
-
-</div>
-
-`;
-
-});
-
-}
